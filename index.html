@@ -1,1 +1,462 @@
-<!doctype html><meta charset='utf-8'><title>rebuild pending</title>
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b5cff" />
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>OT Manual Tracker · ADDD-EGATOvertime</title>
+  <style>
+    :root{--pri:#0b5cff;--bg:#0f1320;--card:#171c2e;--muted:#9aa3b2;}
+    *{box-sizing:border-box} html,body{margin:0;height:100%;background:var(--bg);color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica Neue,Arial}
+    header{position:sticky;top:0;background:linear-gradient(180deg,#0b5cff,#3b64ff);padding:14px 16px;border-bottom:1px solid #2a3561}
+    header h1{margin:0;font-size:18px}
+    .container{padding:14px 12px 92px}
+    .tabs{display:flex;gap:8px;margin-top:10px}
+    .tab{flex:1;text-align:center;padding:10px;border-radius:10px;background:#2440a5;opacity:.85;cursor:pointer}
+    .tab.active{background:#0e2f9b;opacity:1;font-weight:700}
+    .grid{display:grid;grid-template-columns:1fr;gap:10px}
+    @media(min-width:960px){.grid{grid-template-columns:1fr 1fr 1fr}}
+    .card{background:var(--card);border:1px solid #232a45;border-radius:14px;padding:12px}
+    .card h3{margin:0 0 8px;font-size:14px;color:#e6ebff}
+    .row{display:flex;gap:10px}.row>*{flex:1}
+    input,textarea,select,button{width:100%;padding:12px;border-radius:10px;border:1px solid #2a3561;background:#0f1733;color:#fff;font-size:15px}
+    button{background:var(--pri);border:none;font-weight:700;cursor:pointer}
+    button.ghost{background:#0f1733;border:1px solid #2a3561}
+    .muted{color:var(--muted);font-size:12px}
+    .list{display:flex;flex-direction:column;gap:8px;margin-top:8px;max-height:260px;overflow:auto}
+    .item{display:flex;justify-content:space-between;gap:8px;background:#121a38;border:1px solid #202a52;border-radius:12px;padding:10px}
+    .pill{padding:4px 8px;border-radius:999px;background:#0f1733;border:1px solid #2a3561;font-weight:700}
+    .footerbar{position:fixed;left:0;right:0;bottom:0;padding:10px;background:rgba(15,19,32,.8);backdrop-filter:blur(8px);border-top:1px solid #222b4b}
+    canvas{width:100%;height:180px}
+    .money{font-weight:800}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>OT Manual · แดชบอร์ด</h1>
+    <div class="tabs">
+      <div class="tab active" data-view="dashboard">แดชบอร์ด</div>
+      <div class="tab" data-view="daily">บันทึก (Manual)</div>
+      <div class="tab" data-view="reports">รายงาน</div>
+      <div class="tab" data-view="settings">ตั้งค่า</div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- DASHBOARD -->
+    <section id="view-dashboard">
+      <div class="grid">
+        <div class="card">
+          <h3>สรุปเดือนนี้ (<span id="label-month"></span>)</h3>
+          <div class="row">
+            <div class="item"><div>ชั่วโมงรวม</div><div class="pill" id="sum-month-hours">0 ชม.</div></div>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <div class="item"><div>เงินรวม</div><div class="pill money" id="sum-month-money">฿0.00</div></div>
+          </div>
+          <div style="margin-top:10px">
+            <canvas id="chart-days"></canvas>
+            <div class="muted">กราฟชั่วโมงรายวัน (เดือนนี้)</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>สรุปรายปี (<span id="label-year"></span>)</h3>
+          <div class="row">
+            <div class="item"><div>ชั่วโมงรวม</div><div class="pill" id="sum-year-hours">0 ชม.</div></div>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <div class="item"><div>เงินรวม</div><div class="pill money" id="sum-year-money">฿0.00</div></div>
+          </div>
+          <div style="margin-top:10px">
+            <canvas id="chart-months"></canvas>
+            <div class="muted">กราฟชั่วโมงรายเดือน (ปีนี้)</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>สรุปเร็ว (เดือนนี้)</h3>
+          <div class="list" id="quick-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DAILY -->
+    <section id="view-daily" style="display:none">
+      <div class="card">
+        <h3>บันทึก OT (กรอกชั่วโมง 1× / 1.5× / 2× / 3×)</h3>
+        <div class="row">
+          <input type="date" id="in-date">
+          <input type="number" step="0.01" min="0" id="in-rate" placeholder="ฐาน/ชม. (บาท)">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="number" step="0.25" min="0" id="h1" placeholder="ชั่วโมง 1×">
+          <input type="number" step="0.25" min="0" id="h15" placeholder="ชั่วโมง 1.5×">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <input type="number" step="0.25" min="0" id="h2" placeholder="ชั่วโมง 2×">
+          <input type="number" step="0.25" min="0" id="h3" placeholder="ชั่วโมง 3×">
+        </div>
+        <div style="margin-top:8px">
+          <textarea rows="3" id="in-note" placeholder="หมายเหตุ (ถ้ามี)"></textarea>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="btn-save">บันทึก</button>
+          <button class="ghost" id="btn-delete">ลบรายการของวัน</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>สรุปการคำนวณวันนี้</h3>
+        <div class="list" id="calc-breakdown"></div>
+      </div>
+
+      <div class="card">
+        <h3>รายการในเดือนเดียวกัน</h3>
+        <div class="list" id="daily-list"></div>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section id="view-reports" style="display:none">
+      <div class="card">
+        <h3>เลือกเดือน/ปี</h3>
+        <div class="row">
+          <select id="rep-month"></select>
+          <select id="rep-year"></select>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="btn-export-csv">ส่งออก CSV</button>
+          <button class="ghost" id="btn-export-json">สำรอง JSON</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>ผลรายงาน</h3>
+        <div class="list" id="rep-list"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" style="display:none">
+      <div class="card">
+        <h3>ตั้งค่าฐาน/ชม. ดีฟอลต์</h3>
+        <div class="row">
+          <input type="number" step="0.01" min="0" id="def-rate" placeholder="บาท/ชม.">
+          <button id="btn-save-defrate">บันทึกดีฟอลต์</button>
+        </div>
+        <div class="muted" style="margin-top:8px">
+          * ถ้าไม่กรอกฐาน/ชม. ในรายวัน ระบบจะใช้ค่าดีฟอลต์นี้
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>สำรอง/กู้คืนข้อมูล</h3>
+        <div class="row">
+          <button id="btn-download-backup">ดาวน์โหลดสำรอง (.json)</button>
+          <label class="pill" style="align-self:center;text-align:center">
+            เลือกไฟล์ JSON <input type="file" id="file-restore" accept=".json" style="display:none">
+          </label>
+        </div>
+        <div style="margin-top:8px">
+          <button class="ghost" id="btn-clear">ล้างข้อมูลทั้งหมด</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="footerbar">
+    <div class="row">
+      <button class="ghost" id="btn-prev">◀ เดือนก่อน</button>
+      <button id="btn-next">เดือนถัด ▶</button>
+    </div>
+  </div>
+
+  <script>
+  // ===== Storage =====
+  const KEY='ot_manual_v1';
+  const db={
+    load(){ try{return JSON.parse(localStorage.getItem(KEY))||{entries:{},defRate:0}}catch{return {entries:{},defRate:0}}},
+    save(d){ localStorage.setItem(KEY, JSON.stringify(d)); },
+    upsert(date, entry){ const d=db.load(); d.entries[date]=entry; db.save(d); },
+    remove(date){ const d=db.load(); delete d.entries[date]; db.save(d); },
+    setDefRate(v){ const d=db.load(); d.defRate=v; db.save(d); },
+    clear(){ localStorage.removeItem(KEY); }
+  };
+
+  // ===== Helpers =====
+  const $=s=>document.querySelector(s); const $$=s=>[...document.querySelectorAll(s)];
+  const pad=n=>String(n).padStart(2,'0');
+  const ymd=d=>[d.getFullYear(),pad(d.getMonth()+1),pad(d.getDate())].join('-');
+  const fmtMonth=(y,m)=> new Date(y,m-1,1).toLocaleDateString('th-TH',{year:'numeric',month:'long'});
+  const thb=n=>'฿'+(n||0).toFixed(2);
+  function calcTotals(rate,h1,h15,h2,h3){ const hours=(h1+h15+h2+h3); const money=h1*rate + h15*rate*1.5 + h2*rate*2 + h3*rate*3; return {hours,money}; }
+
+  // ===== Tabs =====
+  let state={year:new Date().getFullYear(), month:new Date().getMonth()+1, view:'dashboard'};
+  $$('.tab').forEach(t=>t.onclick=()=>{
+    $$('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
+    state.view=t.dataset.view;
+    $$('#view-dashboard,#view-daily,#view-reports,#view-settings').forEach(s=>s.style.display='none');
+    $('#view-'+state.view).style.display='block';
+    renderAll();
+  });
+
+  // ===== Data helpers =====
+  function entriesOfMonth(y,m){
+    const {entries} = db.load();
+    const list=[];
+    for(const [date,v] of Object.entries(entries)){
+      const [yy,mm]=date.split('-').map(Number);
+      if(yy===y && mm===m){
+        const rate=+v.rate||+db.load().defRate||0;
+        const h1=+v.h1||0, h15=+v.h15||0, h2=+v.h2||0, h3=+v.h3||0;
+        const {hours,money}=calcTotals(rate,h1,h15,h2,h3);
+        list.push({date,rate,h1,h15,h2,h3,hours,money,note:v.note||''});
+      }
+    }
+    list.sort((a,b)=>a.date<b.date?-1:1);
+    return list;
+  }
+  function entriesOfYear(y){
+    const {entries} = db.load();
+    const list=[];
+    for(const [date,v] of Object.entries(entries)){
+      if(+date.slice(0,4)===y){
+        const rate=+v.rate||+db.load().defRate||0;
+        const h1=+v.h1||0, h15=+v.h15||0, h2=+v.h2||0, h3=+v.h3||0;
+        const {hours,money}=calcTotals(rate,h1,h15,h2,h3);
+        list.push({date,rate,h1,h15,h2,h3,hours,money,note:v.note||''});
+      }
+    }
+    return list;
+  }
+  function monthDays(y,m){ return new Date(y,m,0).getDate(); }
+  function sum(arr,f){ return arr.reduce((s,x)=>s+f(x),0); }
+
+  // ===== Charts =====
+  function drawBarChart(canvas, labels, values){
+    const ctx=canvas.getContext('2d');
+    const W=canvas.width=canvas.clientWidth*devicePixelRatio;
+    const H=canvas.height=180*devicePixelRatio;
+    ctx.clearRect(0,0,W,H);
+    const pad=16*devicePixelRatio; const maxV=Math.max(1,...values);
+    const step=(W-pad*2)/values.length; const bw=step*0.7;
+    values.forEach((v,i)=>{
+      const h=(H-pad*2)*(v/maxV);
+      const x=pad+i*step+(step-bw)/2; const y=H-pad-h;
+      ctx.fillStyle='#3b64ff'; ctx.fillRect(x,y,bw,h);
+    });
+    ctx.strokeStyle='#2a3561'; ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.stroke();
+  }
+  function drawLineChart(canvas, labels, values){
+    const ctx=canvas.getContext('2d');
+    const W=canvas.width=canvas.clientWidth*devicePixelRatio;
+    const H=canvas.height=180*devicePixelRatio;
+    ctx.clearRect(0,0,W,H);
+    const pad=16*devicePixelRatio; const maxV=Math.max(1,...values);
+    const step=(W-pad*2)/Math.max(1, values.length-1);
+    ctx.strokeStyle='#1e2746'; for(let i=1;i<=4;i++){ const y=pad+i*(H-pad*2)/5; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke(); }
+    ctx.strokeStyle='#12c06a'; ctx.lineWidth=3; ctx.beginPath();
+    values.forEach((v,i)=>{ const x=pad+i*step; const y=H-pad-(H-pad*2)*(v/maxV); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+    ctx.stroke();
+  }
+
+  // ===== Renderers =====
+  function renderDashboard(){
+    $('#label-month').textContent=fmtMonth(state.year,state.month);
+    $('#label-year').textContent=state.year;
+    const rows=entriesOfMonth(state.year,state.month);
+    const sumH=+sum(rows,r=>r.hours).toFixed(2);
+    const sumM=+sum(rows,r=>r.money).toFixed(2);
+    $('#sum-month-hours').textContent=sumH+' ชม.';
+    $('#sum-month-money').textContent=thb(sumM);
+
+    const months=Array.from({length:12},(_,i)=>i+1);
+    const yRows=months.map(m=>entriesOfMonth(state.year,m));
+    const sumYH=+yRows.reduce((a,rs)=>a+sum(rs,r=>r.hours),0).toFixed(2);
+    const sumYM=+yRows.reduce((a,rs)=>a+sum(rs,r=>r.money),0).toFixed(2);
+    $('#sum-year-hours').textContent=sumYH+' ชม.';
+    $('#sum-year-money').textContent=thb(sumYM);
+
+    const daysInMonth=monthDays(state.year,state.month);
+    const dayVals=Array.from({length:daysInMonth},(_,i)=>{
+      const d=i+1; const dateStr=state.year+'-'+pad(state.month)+'-'+pad(d);
+      const v=db.load().entries[dateStr];
+      if(!v) return 0;
+      const rate=+v.rate||+db.load().defRate||0;
+      const {hours}=calcTotals(rate,+v.h1||0,+v.h15||0,+v.h2||0,+v.h3||0);
+      return hours;
+    });
+    drawBarChart($('#chart-days'),[],dayVals);
+
+    const monthMoney=months.map(m=> +sum(entriesOfMonth(state.year,m),r=>r.money).toFixed(2));
+    drawLineChart($('#chart-months'),[],monthMoney);
+
+    const list=$('#quick-list'); list.innerHTML='';
+    rows.forEach(r=>{
+      const el=document.createElement('div'); el.className='item';
+      el.innerHTML=`<div><strong>${r.date}</strong><div class="muted">1×:${r.h1||0} 1.5×:${r.h15||0} 2×:${r.h2||0} 3×:${r.h3||0}</div></div>
+                    <div style="display:flex;gap:6px;align-items:center">
+                      <span class="pill">${r.hours.toFixed(2)} ชม.</span>
+                      <span class="pill money">${thb(r.money)}</span>
+                    </div>`;
+      list.appendChild(el);
+    });
+  }
+
+  function renderDaily(){
+    if(!$('#in-date').value) $('#in-date').value=ymd(new Date());
+    const d=db.load().entries[$('#in-date').value];
+    const defRate=+db.load().defRate||0;
+    $('#in-rate').value = d? (d.rate||'') : '';
+    $('#h1').value = d? (d.h1||'') : '';
+    $('#h15').value = d? (d.h15||'') : '';
+    $('#h2').value = d? (d.h2||'') : '';
+    $('#h3').value = d? (d.h3||'') : '';
+    $('#in-note').value = d? (d.note||'') : '';
+
+    const rate = +(d? (d.rate||defRate):defRate)||0;
+    const h1=+(d? d.h1:0)||0, h15=+(d? d.h15:0)||0, h2=+(d? d.h2:0)||0, h3=+(d? d.h3:0)||0;
+    showBreakdown(rate,h1,h15,h2,h3);
+
+    const [y,m]=$('#in-date').value.split('-').map(Number);
+    const list=$('#daily-list'); list.innerHTML='';
+    const rows=entriesOfMonth(y,m);
+    rows.forEach(r=>{
+      const el=document.createElement('div'); el.className='item';
+      el.innerHTML=`<div><strong>${r.date}</strong><div class="muted">${r.note||'-'}</div></div>
+                    <div style="display:flex;gap:6px;align-items:center">
+                      <span class="pill">${r.hours.toFixed(2)} ชม.</span>
+                      <span class="pill money">${thb(r.money)}</span>
+                    </div>`;
+      list.appendChild(el);
+    });
+  }
+
+  function showBreakdown(rate,h1,h15,h2,h3){
+    const wrap=$('#calc-breakdown'); wrap.innerHTML='';
+    const head=document.createElement('div'); head.className='item';
+    head.innerHTML=`<div><strong>ฐานต่อชั่วโมง</strong></div><div class="pill money">฿${(+rate||0).toFixed(2)}</div>`;
+    wrap.appendChild(head);
+
+    const rows=[
+      {label:'1×', h:h1, mult:1},
+      {label:'1.5×', h:h15, mult:1.5},
+      {label:'2×', h:h2, mult:2},
+      {label:'3×', h:h3, mult:3},
+    ];
+    rows.forEach(r=>{
+      const el=document.createElement('div'); el.className='item';
+      el.innerHTML=`<div>${r.label} · ${(+r.h||0).toFixed(2)} ชม. × ${r.mult.toFixed(1)}×</div>
+                    <div class="pill money">฿${((+r.h||0)*r.mult*(+rate||0)).toFixed(2)}</div>`;
+      wrap.appendChild(el);
+    });
+
+    const total=calcTotals(+rate||0,+h1||0,+h15||0,+h2||0,+h3||0);
+    const sumEl=document.createElement('div'); sumEl.className='item';
+    sumEl.innerHTML=`<div><strong>รวม</strong> (${total.hours.toFixed(2)} ชม.)</div><div class="pill money">฿${(total.money||0).toFixed(2)}</div>`;
+    wrap.appendChild(sumEl);
+  }
+
+  function renderReports(){
+    const y=+$('#rep-year').value, m=+$('#rep-month').value;
+    const rows=entriesOfMonth(y,m);
+    const list=$('#rep-list'); list.innerHTML='';
+    rows.forEach(r=>{
+      const el=document.createElement('div'); el.className='item';
+      el.innerHTML=`<div><strong>${r.date}</strong><div class="muted">1×:${r.h1||0} 1.5×:${r.h15||0} 2×:${r.h2||0} 3×:${r.h3||0}</div></div>
+                    <div style="display:flex;gap:6px;align-items:center">
+                      <span class="pill">${r.hours.toFixed(2)} ชม.</span>
+                      <span class="pill money">${thb(r.money)}</span>
+                    </div>`;
+      list.appendChild(el);
+    });
+    const sumH=+rows.reduce((a,r)=>a+r.hours,0).toFixed(2);
+    const sumM=+rows.reduce((a,r)=>a+r.money,0).toFixed(2);
+    const el=document.createElement('div'); el.className='item';
+    el.innerHTML=`<div><strong>รวมเดือน ${fmtMonth(y,m)}</strong></div>
+                  <div style="display:flex;gap:6px;align-items:center">
+                    <span class="pill">${sumH.toFixed(2)} ชม.</span>
+                    <span class="pill money">${thb(sumM)}</span>
+                  </div>`;
+    list.appendChild(el);
+  }
+
+  // ===== Events =====
+  $('#btn-save').onclick=()=>{
+    const date=$('#in-date').value||ymd(new Date());
+    const rate=parseFloat($('#in-rate').value||'0')||null;
+    const h1=parseFloat($('#h1').value||'0')||0;
+    const h15=parseFloat($('#h15').value||'0')||0;
+    const h2=parseFloat($('#h2').value||'0')||0;
+    const h3=parseFloat($('#h3').value||'0')||0;
+    const note=$('#in-note').value||'';
+    db.upsert(date,{rate,h1,h15,h2,h3,note});
+    renderAll();
+  };
+  $('#btn-delete').onclick=()=>{
+    const date=$('#in-date').value; if(!date) return;
+    if(confirm('ลบรายการของ '+date+' ?')){ db.remove(date); renderAll(); }
+  };
+
+  ['in-rate','h1','h15','h2','h3','in-date'].forEach(id=>{
+    $('#'+id).addEventListener('input',()=>{
+      const rate=+($('#in-rate').value||db.load().defRate||0)||0;
+      const h1=+($('#h1').value||0)||0, h15=+($('#h15').value||0)||0, h2=+($('#h2').value||0)||0, h3=+($('#h3').value||0)||0;
+      showBreakdown(rate,h1,h15,h2,h3);
+    });
+  });
+
+  // footer month nav
+  $('#btn-prev').onclick=()=>{ state.month--; if(state.month<1){state.month=12; state.year--; } renderAll(); };
+  $('#btn-next').onclick=()=>{ state.month++; if(state.month>12){state.month=1; state.year++; } renderAll(); };
+
+  // report selectors & default rate
+  function fillSelectors(){
+    const months=Array.from({length:12},(_,i)=>i+1);
+    const years=(()=>{const y=new Date().getFullYear(); return [y-1,y,y+1];})();
+    const fill=(sel,list)=>{ sel.innerHTML=''; list.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); }); };
+    fill($('#rep-month'),months); fill($('#rep-year'),years);
+    $('#rep-month').value=state.month; $('#rep-year').value=state.year;
+    $('#def-rate').value = db.load().defRate || '';
+  }
+  $('#rep-month').onchange=renderReports; $('#rep-year').onchange=renderReports;
+  $('#btn-save-defrate').onclick=()=>{ const v=parseFloat($('#def-rate').value||'0'); db.setDefRate(v>0?v:0); alert('บันทึกค่าดีฟอลต์แล้ว'); };
+
+  // backup/restore
+  function download(name, text, mime='text/plain'){
+    const blob=new Blob([text],{type:mime}); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+  $('#btn-export-csv').onclick=()=>{
+    const y=+$('#rep-year').value, m=+$('#rep-month').value;
+    const rows=entriesOfMonth(y,m);
+    const header='date,rate,h1,h1_5,h2,h3,total_hours,total_money,note';
+    const csv=[header, ...rows.map(r=>[r.date,r.rate,r.h1||0,r.h15||0,r.h2||0,r.h3||0,r.hours.toFixed(2),r.money.toFixed(2),`"${(r.note||'').replace(/"/g,'""')}"`].join(','))].join('\n');
+    download(`ot_manual_${y}-${pad(m)}.csv`, csv, 'text/csv');
+  };
+  $('#btn-export-json').onclick=()=>{ download('ot_manual_backup.json', JSON.stringify(db.load(),null,2),'application/json'); };
+  $('#btn-download-backup').onclick=()=>$('#btn-export-json').click();
+  $('#file-restore').onchange=async (e)=>{
+    const f=e.target.files[0]; if(!f) return;
+    try{ const text=await f.text(); const data=JSON.parse(text); if(!data.entries) throw 0; db.save(data); alert('กู้คืนสำเร็จ'); renderAll(); }
+    catch{ alert('ไฟล์ไม่ถูกต้อง'); }
+  };
+  $('#btn-clear').onclick=()=>{ if(confirm('ล้างข้อมูลทั้งหมด?')){ db.clear(); renderAll(); }};
+
+  function renderAll(){
+    if(state.view==='dashboard'){ $('#label-month').textContent=fmtMonth(state.year,state.month); $('#label-year').textContent=state.year; renderDashboard(); }
+    if(state.view==='daily') renderDaily();
+    if(state.view==='reports') renderReports();
+    if(state.view==='settings'){ $('#def-rate').value = db.load().defRate || ''; }
+  }
+
+  // init
+  (function init(){
+    fillSelectors(); renderAll();
+    if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js')); }
+  })();
+  </script>
+</body>
+</html>

@@ -1,1 +1,16 @@
-{"name": "OT Manual Tracker", "start_url": "./index.html", "display": "standalone"}
+{
+  "name": "OT Manual Tracker",
+  "short_name": "OT Manual",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f1320",
+  "theme_color": "#0b5cff",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' ry='12' fill='%230b5cff'/><path d='M16 18h32v6H16zM16 28h20v6H16zM16 38h26v6H16z' fill='white'/></svg>",
+      "sizes": "64x64",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
