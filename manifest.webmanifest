@@ -1,16 +1,20 @@
 {
-  "name": "OT Manual Tracker",
-  "short_name": "OT Manual",
+  "name": "EGAT Overtime",
+  "short_name": "EGAT OT",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f1320",
-  "theme_color": "#0b5cff",
+  "theme_color": "#003399",
   "icons": [
     {
-      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='12' ry='12' fill='%230b5cff'/><path d='M16 18h32v6H16zM16 28h20v6H16zM16 38h26v6H16z' fill='white'/></svg>",
-      "sizes": "64x64",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "src": "assets/egat_logo.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "assets/egat_logo.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
     }
   ]
 }
